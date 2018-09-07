@@ -39,7 +39,6 @@ use PHPOneAPI\Exception;
  */
 class Client {
 
-
     private $ssl;
     private $host;
     private $port;
@@ -147,7 +146,7 @@ class Client {
             throw new Exception( $result[1], $result[2] );
         }
 
-        return $result[1];
+        return $this->xmlToArray($result[1]);
     }
 
 
@@ -176,4 +175,42 @@ class Client {
         return $val;
     }
 
+    /**
+     * Convert a XML string to associative array, when invalid XML data is supplied, the argument will be returned.
+     *
+     * @param string $string
+     * @return array|string
+     */
+    private function xmlToArray($string) {
+        libxml_use_internal_errors(true);
+        $data = simplexml_load_string($string, "SimpleXMLElement", LIBXML_NOCDATA);
+
+        if (!$data) {
+            return $string;
+        }
+
+        $data = json_encode($data);
+        libxml_clear_errors();
+
+        return json_decode($data, true);
+    }
+
+    /**
+     * Getter for Element types which handle further processing.
+     *
+     * @param string $name
+     *
+     * @return Element
+     *
+     * @throws Exception
+     */
+    public function getElement($name) {
+        $class_name = "PHPOneAPI\\" . ucfirst($name);
+
+        if (class_exists($class_name)) {
+            return new $class_name($this);
+        } else {
+            throw new Exception('Could not load element class: ' . strval($name));
+        }
+    }
 }
